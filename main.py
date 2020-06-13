@@ -5,14 +5,6 @@ from pprint import pprint
 from pathlib import Path
 import csv
 
-attributes={
-    'LASTNAME':'',
-    'FIRSTNAME':'',
-    'SMS':'',
-    'CITY':'',
-    'COUNTRY':'',
-}
-
 def update_from_all_csv(api_key, update=False):
     """
     Getting list of CSVs and processing them
@@ -155,10 +147,6 @@ if __name__ == "__main__":
     update_contacts = False if not update_contacts.casefold() == "True".casefold() else True
 
     print(f"update_contacts: {update_contacts}")
-
-    attributes['LASTNAME']='Bobstonts'
-    attributes['FIRSTNAME']='Bob'
-    email="blah@dhafe.oef"
 
     update_from_all_csv(api_key, update=update_contacts)
     
