@@ -172,19 +172,23 @@ def do_action(config):
             "update",
             "create",
             "delete",
-    ]:
+            ]:
         responses = process_all_csvs(config)
+
+        return responses
     elif action in [
             "getall",
-    ]:
-        logging.warning(f"'getall' is not implemented yet.")
-        pass
+            ]:
+        logging.info("Getting all contacts")
+        response = sib_get_all_contacts(config['api_key'])
+        logging.info(pformat(json.loads(response.text)))
+        responses.append(response)
+
+        return responses
     else:
         error = f"Can't process '{action}' - no such action implemented."
         logging.error(error)
         raise ValueError(error)
-
-    return responses if responses else 0
 
 if __name__ == "__main__":
     cwd = Path.cwd()
@@ -200,11 +204,3 @@ if __name__ == "__main__":
     logging.info("Starting...")
 
     do_action(config=config)
-
-
-#    update_from_all_csv(config['api_key'], update=config['update_contacts'])
-    
-#    if config['debug_level'].upper() == 'WARNING' or 'DEBUG':
-#        response=sib_get_all_contacts(api_key=config['api_key'])
-#        logging.warning("Getting all contacts:")
-#        logging.warning(pformat(json.loads(response.text)))
