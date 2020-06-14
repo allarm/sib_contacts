@@ -6,7 +6,7 @@ from pathlib import Path
 import csv
 import logging
 
-def update_from_all_csv(api_key, update=False):
+def process_all_csvs(config):
     """
     Getting list of CSVs and processing them
     """
@@ -19,12 +19,33 @@ def update_from_all_csv(api_key, update=False):
 
     csvs = working_path.glob("*.csv")
 
+    action = config['op_action']
+    api_key = config['api_key']
+    action = config['op_action'].casefold()
+
+    logging.info(f"Action: {action}")
     logging.info("CSVs:")
 
     for csv in csvs:
         logging.info(f"{csv.name}")
-        responses.append(update_from_csv(api_key=api_key, filename=csv, update=update))
 
+        if action == 'update':
+            update = True
+            responses.append(update_from_csv(api_key=api_key,
+                                             filename=csv,
+                                             update=True))
+        elif action == 'create':
+            update = False
+            responses.append(update_from_csv(api_key=api_key,
+                                             filename=csv,
+                                             update=False))
+        elif action == 'delete':
+            logging.warning(f"Delete is not implemented yet")
+            pass
+        else:
+            logging.error(f"Wrong action '{action}' in process_all_csvs context.")
+            raise ValueError(f"Wrong action '{action}' in process_all_csvs context.")
+        
     return responses
 
 def update_from_csv(api_key, filename, update=False):
@@ -144,13 +165,26 @@ def sib_create_contact(api_key, email, attributes='', update=False):
     return(response)
 
 def do_action(config):
-    if config['op_action'].casefold() == "update":
-        logging.info(f"Action: Update")
-        responses = update_from_all_csv(config['api_key'], update=True)
+    action = config['op_action'].casefold()
+    responses = []
+    
+    if action in [
+            "update",
+            "create",
+            "delete",
+    ]:
+        responses = process_all_csvs(config)
+    elif action in [
+            "getall",
+    ]:
+        logging.warning(f"'getall' is not implemented yet.")
+        pass
     else:
-        return 0
+        error = f"Can't process '{action}' - no such action implemented."
+        logging.error(error)
+        raise ValueError(error)
 
-    return responses
+    return responses if responses else 0
 
 if __name__ == "__main__":
     cwd = Path.cwd()
