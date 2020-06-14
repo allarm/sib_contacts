@@ -158,6 +158,7 @@ if __name__ == "__main__":
 
     update_from_all_csv(config['api_key'], update=config['update_contacts'])
     
-    response=sib_get_all_contacts(api_key=config['api_key'])
-    logging.info("Getting all contacts:")
-    logging.info(pformat(json.loads(response.text)))
+    if config['debug_level'].upper() == 'WARNING' or 'DEBUG':
+        response=sib_get_all_contacts(api_key=config['api_key'])
+        logging.warning("Getting all contacts:")
+        logging.warning(pformat(json.loads(response.text)))
