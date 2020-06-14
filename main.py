@@ -1,7 +1,7 @@
 import requests
 import json
 import urllib.parse
-from pprint import pprint
+from pprint import pformat
 from pathlib import Path
 import csv
 import logging
@@ -14,13 +14,13 @@ def update_from_all_csv(api_key, update=False):
     relative_path = "../in/tables/"
     working_path = (cwd / relative_path).resolve()
 
-    print(f"Working path: {working_path}")
+    logging.info(f"Working path: {working_path}")
 
     csvs = working_path.glob("*.csv")
 
-    print("CSVs:")
+    logging.info("CSVs:")
     for csv in csvs:
-        print(f"--{csv.name}")
+        logging.info(f"--{csv.name}")
         update_from_csv(api_key=api_key, filename=csv, update=update)
 
     return 0
@@ -30,14 +30,14 @@ def update_from_csv(api_key, filename, update=False):
     Processing a csv file
     """
 
-    print(f"CSV: {filename.name}")
+    logging.info(f"CSV: {filename.name}")
 
     with open(filename, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file)
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                print(f'Column names: {", ".join(row)}')
+                logging.info(f'Column names: {", ".join(row)}')
                 line_count += 1
 
             email = row["EMAIL"]
@@ -49,18 +49,18 @@ def update_from_csv(api_key, filename, update=False):
                 'COUNTRY': row["COUNTRY"],
             }
 
-            print(f'email: {email}, ', end='')
-            print(f'first name: {attributes["FIRSTNAME"]}, ', end='')
-            print(f'last name: {attributes["LASTNAME"]}, ', end='')
-            print(f'city: {attributes["CITY"]}, ', end='')
-            print(f'country: {attributes["COUNTRY"]}')
+            logging.info(f'''email: {email}, 
+            first name: {attributes["FIRSTNAME"]}, 
+            last name: {attributes["LASTNAME"]},
+            city: {attributes["CITY"]}, 
+            country: {attributes["COUNTRY"]}''')
 
             response = sib_update_contact(api_key=api_key,
                                           email=email,
                                           attributes=attributes,
                                           update=update)
 
-            print(f"Status: {response.status_code}, text: {response.text}")
+            logging.info(f"Status: {response.status_code}, text: {response.text}")
 
             line_count += 1
 
@@ -127,8 +127,6 @@ def sib_update_contact(api_key, email, attributes='', update=True):
         'api-key': api_key,
         }
 
-#    print(f"Payload: {payload}")
-
     response = requests.request("POST", url, data=payload, headers=headers)
 
     return(response)
@@ -144,13 +142,22 @@ def sib_create_contact(api_key, email, attributes='', update=False):
     return(response)
 
 if __name__ == "__main__":
-    print("Getting configuration...")
+    cwd = Path.cwd()
+    filename = (cwd / "../out/files/log.log").resolve()
+
     config_json = get_config()
     config = parse_config(config_json)
 
-    print(f"update_contacts: {config['update_contacts']}")
+    logging.basicConfig(filename=filename,
+                        level=config['debug_level'].upper(),
+                        format='%(asctime)s %(levelname)s: %(message)s')
+
+    logging.info("\nStarting...")
+
+    logging.info(f"update_contacts: {config['update_contacts']}")
 
     update_from_all_csv(config['api_key'], update=config['update_contacts'])
     
     response=sib_get_all_contacts(api_key=config['api_key'])
-    pprint(json.loads(response.text))
+    logging.info("Getting all contacts:")
+    logging.info(pformat(json.loads(response.text)))
