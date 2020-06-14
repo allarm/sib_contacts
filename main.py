@@ -13,17 +13,19 @@ def update_from_all_csv(api_key, update=False):
     cwd = Path.cwd()
     relative_path = "../in/tables/"
     working_path = (cwd / relative_path).resolve()
+    responses = []
 
     logging.info(f"Working path: {working_path}")
 
     csvs = working_path.glob("*.csv")
 
     logging.info("CSVs:")
-    for csv in csvs:
-        logging.info(f"--{csv.name}")
-        update_from_csv(api_key=api_key, filename=csv, update=update)
 
-    return 0
+    for csv in csvs:
+        logging.info(f"{csv.name}")
+        responses.append(update_from_csv(api_key=api_key, filename=csv, update=update))
+
+    return responses
 
 def update_from_csv(api_key, filename, update=False):
     """
@@ -37,19 +39,19 @@ def update_from_csv(api_key, filename, update=False):
         line_count = 0
         for row in csv_reader:
             if line_count == 0:
-                logging.info(f'Column names: {", ".join(row)}')
+                logging.warning(f'Column names: {", ".join(row)}')
                 line_count += 1
 
             email = row["EMAIL"]
 
             attributes = {
-                'LASTNAME': row["LASTNAME"],
-                'FIRSTNAME': row["FIRSTNAME"],
-                'CITY': row["CITY"],
-                'COUNTRY': row["COUNTRY"],
+                'LASTNAME': row["LASTNAME"] if "LASTNAME" in row.keys() else "",
+                'FIRSTNAME': row["FIRSTNAME"] if "FIRSTNAME" in row.keys() else "",
+                'CITY': row["CITY"] if "CITY" in row.keys() else "",
+                'COUNTRY': row["COUNTRY"] if "COUNTRY" in row.keys() else "",
             }
 
-            logging.info(f'''email: {email}, 
+            logging.debug(f'''email: {email}, 
             first name: {attributes["FIRSTNAME"]}, 
             last name: {attributes["LASTNAME"]},
             city: {attributes["CITY"]}, 
@@ -64,7 +66,7 @@ def update_from_csv(api_key, filename, update=False):
 
             line_count += 1
 
-    return 0
+    return response
     
 def get_config():
     cwd = Path.cwd()
@@ -77,8 +79,8 @@ def parse_config(config_json):
     config = {}
     
     config['api_key'] = config_json["parameters"]["credentials"]["api_key"] 
-    config['update_contacts'] = config_json["parameters"]["sb_settings"]["update_contacts"]
     config['debug_level'] = config_json["parameters"]["debug"]["level"]
+    config['op_action'] = config_json["parameters"]["op"]["action"]
 
     return config
     
@@ -141,6 +143,15 @@ def sib_create_contact(api_key, email, attributes='', update=False):
 
     return(response)
 
+def do_action(config):
+    if config['op_action'].casefold() == "update":
+        logging.info(f"Action: Update")
+        responses = update_from_all_csv(config['api_key'], update=True)
+    else:
+        return 0
+
+    return responses
+
 if __name__ == "__main__":
     cwd = Path.cwd()
     filename = (cwd / "../out/files/log.log").resolve()
@@ -152,13 +163,14 @@ if __name__ == "__main__":
                         level=config['debug_level'].upper(),
                         format='%(asctime)s %(levelname)s: %(message)s')
 
-    logging.info("\nStarting...")
+    logging.info("Starting...")
 
-    logging.info(f"update_contacts: {config['update_contacts']}")
+    do_action(config=config)
 
-    update_from_all_csv(config['api_key'], update=config['update_contacts'])
+
+#    update_from_all_csv(config['api_key'], update=config['update_contacts'])
     
-    if config['debug_level'].upper() == 'WARNING' or 'DEBUG':
-        response=sib_get_all_contacts(api_key=config['api_key'])
-        logging.warning("Getting all contacts:")
-        logging.warning(pformat(json.loads(response.text)))
+#    if config['debug_level'].upper() == 'WARNING' or 'DEBUG':
+#        response=sib_get_all_contacts(api_key=config['api_key'])
+#        logging.warning("Getting all contacts:")
+#        logging.warning(pformat(json.loads(response.text)))
