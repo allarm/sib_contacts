@@ -30,25 +30,30 @@ def process_all_csvs(config):
         logging.info(f"{csv.name}")
 
         if action == 'update':
-            update = True
             responses.append(update_from_csv(api_key=api_key,
                                              filename=csv,
-                                             update=True))
+                                             update=True,
+                                             delete=False,
+            ))
         elif action == 'create':
-            update = False
             responses.append(update_from_csv(api_key=api_key,
                                              filename=csv,
-                                             update=False))
+                                             update=False,
+                                             delete=False,
+            ))
         elif action == 'delete':
-            logging.warning(f"Delete is not implemented yet")
-            pass
+            responses.append(update_from_csv(api_key=api_key,
+                                             filename=csv,
+                                             update=False,
+                                             delete=True
+            ))
         else:
             logging.error(f"Wrong action '{action}' in process_all_csvs context.")
             raise ValueError(f"Wrong action '{action}' in process_all_csvs context.")
         
     return responses
 
-def update_from_csv(api_key, filename, update=False):
+def update_from_csv(api_key, filename, update=False, delete=False):
     """
     Processing a csv file
     """
@@ -78,10 +83,21 @@ def update_from_csv(api_key, filename, update=False):
             city: {attributes["CITY"]}, 
             country: {attributes["COUNTRY"]}''')
 
-            response = sib_update_contact(api_key=api_key,
-                                          email=email,
-                                          attributes=attributes,
-                                          update=update)
+            if not delete:
+                if update:
+                    logging.info(f"Updating contact: {email}")
+                else:
+                    logging.info(f"Creating contact: {email}")
+
+                response = sib_update_contact(api_key=api_key,
+                                              email=email,
+                                              attributes=attributes,
+                                              update=update)
+            else:
+                logging.info(f"Deleting contact: {email}")
+
+                response = sib_del_contact(api_key=api_key,
+                                           email=email)
 
             logging.info(f"Status: {response.status_code}, text: {response.text}")
 
