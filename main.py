@@ -4,6 +4,7 @@ import urllib.parse
 from pprint import pprint
 from pathlib import Path
 import csv
+import logging
 
 def update_from_all_csv(api_key, update=False):
     """
@@ -73,10 +74,13 @@ def get_config():
         return config_json
 
 def parse_config(config_json):
-   api_key = config_json["parameters"]["credentials"]["api_key"] 
-   update_contacts = config_json["parameters"]["sb_settings"]["update_contacts"]
+    config = {}
+    
+    config['api_key'] = config_json["parameters"]["credentials"]["api_key"] 
+    config['update_contacts'] = config_json["parameters"]["sb_settings"]["update_contacts"]
+    config['debug_level'] = config_json["parameters"]["debug"]["level"]
 
-   return api_key, update_contacts
+    return config
     
 def sib_del_contact(api_key, email):
     url = "https://api.sendinblue.com/v3/contacts/{}".format(urllib.parse.quote(email))
@@ -141,20 +145,12 @@ def sib_create_contact(api_key, email, attributes='', update=False):
 
 if __name__ == "__main__":
     print("Getting configuration...")
-    config = get_config()
-    api_key, update_contacts = parse_config(config)
+    config_json = get_config()
+    config = parse_config(config_json)
 
-    update_contacts = False if not update_contacts.casefold() == "True".casefold() else True
+    print(f"update_contacts: {config['update_contacts']}")
 
-    print(f"update_contacts: {update_contacts}")
-
-    update_from_all_csv(api_key, update=update_contacts)
+    update_from_all_csv(config['api_key'], update=config['update_contacts'])
     
-    #response=sib_update_contact(api_key=api_key, email=email, attributes=attributes)
-    #print(response.text)
-
-    #response=sib_del_contact(api_key=api_key, email='depo@oped.org')
-    #print(response.text)
-
-    response=sib_get_all_contacts(api_key=api_key)
+    response=sib_get_all_contacts(api_key=config['api_key'])
     pprint(json.loads(response.text))
