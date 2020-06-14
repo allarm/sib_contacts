@@ -25,6 +25,7 @@ Made for [She Loves Data](https://shelovesdata.com/).
 ```
 
 Debug logging levels: `info`, `warning`, `debug`.
+
 Available operations: 
 - `getall` :: gets all (50 max) contacts and logs them
 - `delete` :: deletes contacts
@@ -34,6 +35,7 @@ Available operations:
 ## CSV files format
 
 CSVs should be placed in `/data/in/tables/`.
+
 Multiple CSV files are allowed.
 
 ```csv
