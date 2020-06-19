@@ -14,7 +14,7 @@ def process_all_csvs(config):
     cwd = Path.cwd()
     relative_path = "../in/tables/"
     working_path = (cwd / relative_path).resolve()
-    responses = []
+    results = []
 
     logging.info(f"Working path: {working_path}")
 
@@ -29,30 +29,32 @@ def process_all_csvs(config):
         logging.info(f"{csv.name}")
 
         if action == "update":
-            responses.append(
+            results.append(
                 update_from_csv(config=config, filename=csv, update=True, delete=False,)
             )
         elif action == "create":
-            responses.append(
+            results.append(
                 update_from_csv(
                     config=config, filename=csv, update=False, delete=False,
                 )
             )
         elif action == "delete":
-            responses.append(
+            results.append(
                 update_from_csv(config=config, filename=csv, update=False, delete=True)
             )
         else:
             logging.error(f"Wrong action '{action}' in process_all_csvs context.")
             raise ValueError(f"Wrong action '{action}' in process_all_csvs context.")
 
-    return responses
+    return results
 
 
 def update_from_csv(config, filename, update=False, delete=False):
     """
     Processing a csv file
     """
+
+    results = []
 
     logging.info(f"CSV: {filename.name}")
 
@@ -99,7 +101,27 @@ def update_from_csv(config, filename, update=False, delete=False):
 
             line_count += 1
 
-    return response
+            if delete:
+                action = "delete"
+            elif update:
+                action = "update"
+            elif not update:
+                action = "create"
+            else:
+                action = "I can't do that, Dave."
+
+            results.append(
+                {
+                    "response": response,
+                    "email": email,
+                    "action": action,
+                    "response status": response.status_code,
+                    "response text": response.text,
+                    "response ok": response.ok,
+                }
+            )
+
+    return results
 
 
 def get_config():
@@ -217,7 +239,8 @@ def sib_update_contact(config, email, attributes="", update=True):
     if attributes:
         attributes_str = json.dumps(attributes)
 
-    if config["unlinkListIds"]:
+    # Do not unlink contacts from list if not updating them
+    if config["unlinkListIds"] and update:
         list_string = f'"unlinkListIds":{config["unlinkListIds"]},'
         url = f"{url}/{urllib.parse.quote(email)}"
         method = "PUT"
@@ -247,25 +270,36 @@ def sib_update_contact(config, email, attributes="", update=True):
 
 def do_action(config):
     action = config["op_action"].casefold()
-    responses = []
+    results = []
 
     if action in [
         "update",
         "create",
         "delete",
     ]:
-        responses = process_all_csvs(config)
+        results = process_all_csvs(config)
 
-        return responses
+        return results
     elif action in [
         "getall",
     ]:
         logging.info("Getting all contacts")
         response = sib_get_all_contacts(config)
         logging.info(pformat(json.loads(response.text)))
-        responses.append(response)
+        results.append(
+            [
+                {
+                    "response": response,
+                    "email": "",
+                    "action": action,
+                    "response status": response.status_code,
+                    "response text": response.text,
+                    "response ok": response.ok,
+                }
+            ]
+        )
 
-        return responses
+        return results
     else:
         error = f"Can't process '{action}' - no such action implemented."
         logging.error(error)
@@ -318,4 +352,17 @@ if __name__ == "__main__":
     logging.info(f'Log level: {config["debug_level"].upper()}')
     logging.info("Starting...")
 
-    do_action(config=config)
+    results = do_action(config=config)
+
+    logging.debug(f"{pformat(results)}")
+
+    logging.info("Summary:")
+    for r in results:
+        for _ in r:
+            if _["action"] == "getall":
+                logging.info(f"Action: getall")
+                logging.info(f"{pformat(json.loads(_['response text']))}")
+            else:
+                logging.info(
+                    f"Action: {_['action']}; Email: {_['email']}; Response OK: {_['response ok']}; Response text: {_['response text']}"
+                )
