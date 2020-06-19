@@ -151,6 +151,11 @@ def parse_config(config_json):
         logging.info(error)
         config["unlinkListIds"] = []
 
+    logging.info("Parsed config:")
+    api_key = config["api_key"]
+    config["api_key"] = "X" * len(api_key)
+    logging.info(f"{pformat(config)}")
+    config["api_key"] = api_key
     return config
 
 
@@ -236,9 +241,32 @@ def do_action(config):
         raise ValueError(error)
 
 
+def init_logging(
+    filename,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s: %(message)s",
+    mode="a",
+    encoding=None,
+    delay=False,
+):
+    """Initializing logging system"""
+    logging.root.handlers = []
+    logging.basicConfig(
+        level=level,
+        format=format,
+        handlers=[
+            logging.FileHandler(filename, mode=mode, encoding=encoding, delay=delay),
+            logging.StreamHandler(),
+        ],
+    )
+
+
 if __name__ == "__main__":
     cwd = Path.cwd()
     filename = (cwd / "../out/files/log.log").resolve()
+
+    # Initial init to collect logs from parser
+    init_logging(filename)
 
     config_json = get_config()
     config = parse_config(config_json)
@@ -254,12 +282,7 @@ if __name__ == "__main__":
     else:
         level = logging.INFO
 
-    logging.root.handlers = []
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s: %(message)s",
-        handlers=[logging.FileHandler(filename), logging.StreamHandler()],
-    )
+    init_logging(filename, level=level)
 
     logging.info(f'Log level: {config["debug_level"].upper()}')
     logging.info("Starting...")
