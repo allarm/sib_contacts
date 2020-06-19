@@ -114,10 +114,41 @@ def get_config():
 
 def parse_config(config_json):
     config = {}
+
+    try:
+        config['api_key'] = config_json["parameters"]["credentials"]["api_key"] 
+    except:
+        error = "No API key defined!"
+        logging.error(error)
+        raise ValueError(error)
     
-    config['api_key'] = config_json["parameters"]["credentials"]["api_key"] 
-    config['debug_level'] = config_json["parameters"]["debug"]["level"]
-    config['op_action'] = config_json["parameters"]["op"]["action"]
+    try:
+        config['debug_level'] = config_json["parameters"]["debug"]["level"]
+    except:
+        error = "No debug level defined, using Info"
+        logging.info(error)
+        config['debug_level'] = "info"
+
+    try:
+        config['op_action'] = config_json["parameters"]["op"]["action"]
+    except:
+        error = "No action defined!"
+        logging.error(error)
+        raise ValueError(error)
+
+    try:
+        config['listIds'] = config_json["parameters"] ["litIds"]
+    except:
+        error = "No listIds defined, using an empty list"
+        logging.info(error)
+        config['listIds'] = []
+
+    try:
+        config['unlinkListIds'] = config_json["parameters"]["unlinkListIds"]
+    except:
+        error = "No unlinkListIds defined, using an empty list"
+        logging.info(error)
+        config['unlinkListIds'] = []
 
     return config
     
