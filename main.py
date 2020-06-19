@@ -93,7 +93,7 @@ def update_from_csv(config, filename, update=False, delete=False):
             else:
                 logging.info(f"Deleting contact: {email}")
 
-                response = sib_del_contact(api_key=api_key, email=email)
+                response = sib_del_contact(config=config, email=email)
 
             logging.info(f"Status: {response.status_code}, text: {response.text}")
 
@@ -167,10 +167,10 @@ def parse_config(config_json):
     return config
 
 
-def sib_del_contact(api_key, email):
+def sib_del_contact(config, email):
     url = "https://api.sendinblue.com/v3/contacts/{}".format(urllib.parse.quote(email))
 
-    headers = {"accept": "application/json", "api-key": api_key}
+    headers = {"accept": "application/json", "api-key": config["api_key"]}
 
     response = requests.request("DELETE", url, headers=headers)
 
@@ -212,12 +212,15 @@ def sib_update_contact(config, email, attributes="", update=True):
 
     url = "https://api.sendinblue.com/v3/contacts"
     update_str = "true" if update else "false"
+    method = "POST"
 
     if attributes:
         attributes_str = json.dumps(attributes)
 
     if config["unlinkListIds"]:
         list_string = f'"unlinkListIds":{config["unlinkListIds"]},'
+        url = f"{url}/{urllib.parse.quote(email)}"
+        method = "PUT"
     elif config["listIds"]:
         list_string = f'"listIds":{config["listIds"]},'
     else:
@@ -237,7 +240,7 @@ def sib_update_contact(config, email, attributes="", update=True):
         "api-key": config["api_key"],
     }
 
-    response = requests.request("POST", url, data=payload, headers=headers)
+    response = requests.request(method, url, data=payload, headers=headers)
 
     return response
 
