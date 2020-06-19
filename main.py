@@ -103,6 +103,17 @@ def update_from_csv(config, filename, update=False, delete=False):
 
 
 def get_config():
+    """Read config file
+    
+    Parameters
+    ----------
+       no
+    
+    Returns
+    -------
+        config_json : json
+    """
+
     cwd = Path.cwd()
     filename = (cwd / "../config.json").resolve()
     with open(filename) as f:
@@ -135,7 +146,7 @@ def parse_config(config_json):
         raise ValueError(error)
 
     try:
-        config["listIds"] = config_json["parameters"]["litIds"]
+        config["listIds"] = config_json["parameters"]["listIds"]
     except:
         error = "No listIds defined, using an empty list"
         logging.info(error)
@@ -179,17 +190,46 @@ def sib_get_all_contacts(config):
 
 
 def sib_update_contact(config, email, attributes="", update=True):
+    """Update contact
+
+    Parameters
+    ----------
+    config : dict, 
+        Parsed configuration file
+    email : str, 
+        Email to update or add
+    attributes : str, optional
+        attributes, default is empty string
+    update : boolean, optional
+        Default is True
+        If True, update the contact. 
+        If False - create the contact
+    
+    Returns
+    -------
+    response object
+    """
+
     url = "https://api.sendinblue.com/v3/contacts"
     update_str = "true" if update else "false"
 
     if attributes:
         attributes_str = json.dumps(attributes)
 
+    if config["unlinkListIds"]:
+        list_string = f'"unlinkListIds":{config["unlinkListIds"]},'
+    elif config["listIds"]:
+        list_string = f'"listIds":{config["listIds"]},'
+    else:
+        list_string = ""
+
     payload = f"""
         {{"updateEnabled":{update_str},
-        "email":"{email}",
-        "attributes": {attributes_str}}}
-        """
+        "email":"{email}", {list_string}
+        "attributes": {attributes_str}}}"""
+
+    logging.debug("Payload:")
+    logging.debug(f"{payload}")
 
     headers = {
         "accept": "application/json",
