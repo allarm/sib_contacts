@@ -20,8 +20,6 @@ def process_all_csvs(config):
 
     csvs = working_path.glob("*.csv")
 
-    action = config["op_action"]
-    api_key = config["api_key"]
     action = config["op_action"].casefold()
 
     logging.info(f"Action: {action}")
@@ -32,21 +30,17 @@ def process_all_csvs(config):
 
         if action == "update":
             responses.append(
-                update_from_csv(
-                    api_key=api_key, filename=csv, update=True, delete=False,
-                )
+                update_from_csv(config=config, filename=csv, update=True, delete=False,)
             )
         elif action == "create":
             responses.append(
                 update_from_csv(
-                    api_key=api_key, filename=csv, update=False, delete=False,
+                    config=config, filename=csv, update=False, delete=False,
                 )
             )
         elif action == "delete":
             responses.append(
-                update_from_csv(
-                    api_key=api_key, filename=csv, update=False, delete=True
-                )
+                update_from_csv(config=config, filename=csv, update=False, delete=True)
             )
         else:
             logging.error(f"Wrong action '{action}' in process_all_csvs context.")
@@ -55,7 +49,7 @@ def process_all_csvs(config):
     return responses
 
 
-def update_from_csv(api_key, filename, update=False, delete=False):
+def update_from_csv(config, filename, update=False, delete=False):
     """
     Processing a csv file
     """
@@ -94,7 +88,10 @@ def update_from_csv(api_key, filename, update=False, delete=False):
                     logging.info(f"Creating contact: {email}")
 
                 response = sib_update_contact(
-                    api_key=api_key, email=email, attributes=attributes, update=update
+                    api_key=config["api_key"],
+                    email=email,
+                    attributes=attributes,
+                    update=update,
                 )
             else:
                 logging.info(f"Deleting contact: {email}")
@@ -167,12 +164,12 @@ def sib_del_contact(api_key, email):
     return response
 
 
-def sib_get_all_contacts(api_key):
+def sib_get_all_contacts(config):
     url = "https://api.sendinblue.com/v3/contacts"
 
     querystring = {"limit": "50", "offset": "0"}
 
-    headers = {"accept": "application/json", "api-key": api_key}
+    headers = {"accept": "application/json", "api-key": config["api_key"]}
 
     response = requests.request("GET", url, headers=headers, params=querystring)
 
@@ -228,7 +225,7 @@ def do_action(config):
         "getall",
     ]:
         logging.info("Getting all contacts")
-        response = sib_get_all_contacts(config["api_key"])
+        response = sib_get_all_contacts(config)
         logging.info(pformat(json.loads(response.text)))
         responses.append(response)
 
@@ -264,6 +261,7 @@ if __name__ == "__main__":
         handlers=[logging.FileHandler(filename), logging.StreamHandler()],
     )
 
+    logging.info(f'Log level: {config["debug_level"].upper()}')
     logging.info("Starting...")
 
     do_action(config=config)
