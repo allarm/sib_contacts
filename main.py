@@ -88,10 +88,7 @@ def update_from_csv(config, filename, update=False, delete=False):
                     logging.info(f"Creating contact: {email}")
 
                 response = sib_update_contact(
-                    api_key=config["api_key"],
-                    email=email,
-                    attributes=attributes,
-                    update=update,
+                    config=config, email=email, attributes=attributes, update=update,
                 )
             else:
                 logging.info(f"Deleting contact: {email}")
@@ -181,7 +178,7 @@ def sib_get_all_contacts(config):
     return response
 
 
-def sib_update_contact(api_key, email, attributes="", update=True):
+def sib_update_contact(config, email, attributes="", update=True):
     url = "https://api.sendinblue.com/v3/contacts"
     update_str = "true" if update else "false"
 
@@ -197,19 +194,10 @@ def sib_update_contact(api_key, email, attributes="", update=True):
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "api-key": api_key,
+        "api-key": config["api_key"],
     }
 
     response = requests.request("POST", url, data=payload, headers=headers)
-
-    return response
-
-
-def sib_create_contact(api_key, email, attributes="", update=False):
-
-    response = sib_update_contact(
-        api_key, attributes=attributes, email=email, update=update
-    )
 
     return response
 
